@@ -5,8 +5,9 @@ use tokio;
 async fn main() {
     let url = "https://jimaku.cc";
 
-    match request::get_body(url).await {
-        Ok(body) => parse::parse(&body),
-        Err(e) => eprintln!("Error: {}", e),
-    }
+    let Ok(body) = request::get_body(url).await else {
+        todo!()
+    };
+
+    parse::parse(&body);
 }
