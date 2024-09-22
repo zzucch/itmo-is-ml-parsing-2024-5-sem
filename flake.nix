@@ -33,6 +33,9 @@
           rustc
           rustfmt
           rustPackages.clippy
+
+          openssl
+          pkg-config
         ];
       };
     });
