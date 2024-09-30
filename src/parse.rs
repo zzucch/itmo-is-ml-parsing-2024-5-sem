@@ -28,12 +28,10 @@ pub fn parse(data: &str) -> Result<Vec<Entry>> {
 
         if let Some(id) = parse_id_from_element(&element) {
             entry.id = id;
-        } else {
-            continue;
-        }
 
-        println!("{entry:?}");
-        entries.push(entry);
+            println!("{entry:?}");
+            entries.push(entry);
+        }
     }
 
     Ok(entries)
