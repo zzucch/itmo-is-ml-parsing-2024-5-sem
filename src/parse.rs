@@ -1,2 +1,2 @@
-pub mod entry;
-pub mod file;
+pub mod anilist;
+pub mod jimaku;

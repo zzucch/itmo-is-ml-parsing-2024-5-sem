@@ -7,9 +7,9 @@ pub struct Entry {
     #[serde(skip_deserializing)]
     pub id: i32,
     name: String,
-    flags: i32,
+    pub flags: u32,
     last_modified: i64,
-    anilist_id: Option<i32>,
+    pub anilist_id: Option<i32>,
     tmdb_id: Option<String>,
     english_name: Option<String>,
     japanese_name: Option<String>,
