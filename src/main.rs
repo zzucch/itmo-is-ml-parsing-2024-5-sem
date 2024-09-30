@@ -1,13 +1,15 @@
 use ml::{parse, request};
-use tokio;
 
 #[tokio::main]
 async fn main() {
-    let url = "https://jimaku.cc/dramas";
+    let urls = ["https://jimaku.cc", "https://jimaku.cc/dramas"];
 
-    let Ok(body) = request::get_body(url).await else {
-        todo!()
-    };
+    for url in urls {
+        let Ok(body) = request::get_body(url).await else {
+            eprintln!("failed to get the request body");
+            return;
+        };
 
-    parse::parse(&body);
+        let _entries = parse::parse(&body);
+    }
 }

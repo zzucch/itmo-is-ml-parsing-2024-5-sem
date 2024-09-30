@@ -3,6 +3,16 @@ name = "ml"
 version = "0.1.0"
 edition = "2021"
 
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+min_ident_chars = "warn"
+missing_panics_doc = "allow"
+missing_errors_doc = "allow"
+
 [dependencies]
 reqwest = "0.12.7"
 scraper = "0.20.0"
