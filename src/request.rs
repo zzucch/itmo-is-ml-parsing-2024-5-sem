@@ -32,7 +32,10 @@ impl RateLimiter {
     }
 }
 
-pub async fn get_body(url: &str, rate_limiter: Arc<RateLimiter>) -> Result<String, reqwest::Error> {
+pub async fn get_body(
+    url: &str,
+    rate_limiter: &Arc<RateLimiter>,
+) -> Result<String, reqwest::Error> {
     rate_limiter.enforce_rate_limit().await;
 
     let response = reqwest::get(url).await?;
