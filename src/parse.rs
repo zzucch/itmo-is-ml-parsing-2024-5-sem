@@ -29,7 +29,6 @@ pub fn parse(data: &str) -> Result<Vec<Entry>> {
         if let Some(id) = parse_id_from_element(&element) {
             entry.id = id;
 
-            println!("{entry:?}");
             entries.push(entry);
         }
     }
