@@ -15,6 +15,7 @@ pub enum Source {
     LiveAction,
     Game,
     MultimediaProject,
+    Other,
 }
 
 pub fn convert_source(source: &str) -> Result<Source> {
@@ -32,6 +33,7 @@ pub fn convert_source(source: &str) -> Result<Source> {
         "Live Action" => Ok(Source::LiveAction),
         "Game" => Ok(Source::Game),
         "Multimedia Project" => Ok(Source::MultimediaProject),
+        "Other" => Ok(Source::Other),
         _ => bail!("Unknown source: {}", source),
     }
 }

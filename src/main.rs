@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use anyhow::{anyhow, bail, Context, Result};
 use headless_chrome::{Browser, LaunchOptionsBuilder};
 use ml_parser::{
@@ -26,9 +28,12 @@ async fn main() -> Result<()> {
     let browser =
         Browser::new(launch_options).map_err(|e| anyhow!("Failed to create browser: {:?}", e))?;
 
-    let mut current = 200;
+    let mut current = 113;
+    let mut failed_in_a_row = 0;
 
     for entry in &entries[current..] {
+        current += 1;
+
         let anilist_id = match entry.anilist_id {
             None => continue,
             Some(anilist_id) => anilist_id,
@@ -46,14 +51,20 @@ async fn main() -> Result<()> {
             Ok(anilist_data) => anilist_data,
             Err(err) => {
                 eprintln!("Failed to get anilist entry {anilist_id}: {:#}", err);
+                failed_in_a_row += 1;
+
+                if failed_in_a_row == 3 {
+                    exit(1);
+                }
                 continue;
             }
         };
 
+        failed_in_a_row = 0;
+
         // let _processed_entry = get_processed_entry(&entry, &files_data);
 
         println!("{current}");
-        current += 1;
     }
 
     Ok(())

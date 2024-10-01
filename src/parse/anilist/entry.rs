@@ -42,7 +42,10 @@ pub fn parse_anilist_entry(head_data: &str, body_data: &str) -> Result<Entry> {
 
     entry.source = match entry.source {
         Some(source) => Some(source),
-        None => Some(parse_body_source(&body_document)?),
+        None => match parse_body_source(&body_document) {
+            Ok(source) => Some(source),
+            Err(_) => None,
+        },
     };
 
     let airing_episodes_amount = parse_body_airing_episodes_amount(&body_document).ok();
@@ -51,8 +54,6 @@ pub fn parse_anilist_entry(head_data: &str, body_data: &str) -> Result<Entry> {
         Some(airing_amount) => Some(airing_amount),
         None => entry.episodes_amount,
     };
-
-    println!("{entry:?}");
 
     Ok(entry)
 }
