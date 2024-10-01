@@ -28,7 +28,7 @@ async fn main() -> Result<()> {
     let browser =
         Browser::new(launch_options).map_err(|e| anyhow!("Failed to create browser: {:?}", e))?;
 
-    let mut current = 229;
+    let mut current = 513;
     let mut failed_in_a_row = 0;
 
     for entry in &entries[current..] {

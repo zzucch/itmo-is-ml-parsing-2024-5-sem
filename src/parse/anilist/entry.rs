@@ -16,7 +16,7 @@ pub struct Entry {
     source: Option<Source>,
     genres: Vec<Genre>,
     episodes_amount: Option<i32>,
-    time_required: String,
+    time_required: Option<String>, // None on 138450
     start_date: Option<String>,
     end_date: Option<String>,
     rating_value: i32,
@@ -211,10 +211,7 @@ fn parse_head_data(head_data: &str) -> Result<Entry> {
         .as_i64()
         .and_then(|num| i32::try_from(num).ok());
 
-    let time_required = main_entity["timeRequired"]
-        .as_str()
-        .context(format!("Failed to get timeRequired from {:?}", main_entity))?
-        .to_string();
+    let time_required = main_entity["timeRequired"].as_str().map(|s| s.to_string());
 
     let start_date = main_entity["startDate"].as_str().map(|s| s.to_string());
     let end_date = main_entity["endDate"].as_str().map(|s| s.to_string());
