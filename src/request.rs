@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc, thread::sleep, time::Duration};
 
 use anyhow::{bail, Context, Result};
 use headless_chrome::{Browser, Tab};
@@ -6,7 +6,7 @@ use reqwest;
 use tokio::time::timeout;
 
 pub async fn get_body(url: &str) -> Result<String> {
-    let response = reqwest::get(url).await.context("Failed to get URL")?;
+    let response = get_response(url).await?;
 
     let body = response
         .text()
@@ -14,6 +14,18 @@ pub async fn get_body(url: &str) -> Result<String> {
         .context("Failed to get response text")?;
 
     Ok(body)
+}
+
+async fn get_response(url: &str) -> Result<reqwest::Response> {
+    for _i in 0..5 {
+        let response = reqwest::get(url).await;
+        match response {
+            Ok(response) => return Ok(response),
+            Err(_) => sleep(Duration::from_secs(1)),
+        };
+    }
+
+    reqwest::get(url).await.context("Failed to get URL")
 }
 
 pub async fn get_page_data_chrome(browser: &Browser, url: &str) -> Result<(String, String)> {
