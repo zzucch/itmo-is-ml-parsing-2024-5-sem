@@ -12,6 +12,11 @@ pub enum Format {
 }
 
 pub fn convert_format(format: &str) -> Result<Format> {
+    let format_lower = format.to_lowercase();
+    if format_lower.contains("movie") {
+        return Ok(Format::Movie); // 10259 is 'Movie (Chinese)'
+    }
+
     match format {
         "TV" => Ok(Format::TvShort),
         "Movie" => Ok(Format::Movie),
