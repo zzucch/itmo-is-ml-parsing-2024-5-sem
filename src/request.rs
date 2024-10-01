@@ -20,6 +20,8 @@ pub async fn get_head_chrome(browser: &Browser, url: &str) -> Result<String> {
     let tab = browser.new_tab().context("Failed to create new tab")?;
 
     tab.navigate_to(url).context("Failed to navigate to URL")?;
+    tab.wait_until_navigated()
+        .context("Failed to wait until navigated")?;
 
     let wait_for_head = async {
         tab.wait_for_element("head")
@@ -37,7 +39,7 @@ pub async fn get_head_chrome(browser: &Browser, url: &str) -> Result<String> {
         .value
         .context("Failed to get value from evaluation")?
         .as_str()
-        .context("Failed to convert value to string")?
+        .context("Failed to convert evaluation value to string")?
         .to_string();
 
     tab.close(false).context("Failed to close tab")?;

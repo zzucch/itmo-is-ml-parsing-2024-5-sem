@@ -14,7 +14,7 @@ use ml_parser::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let urls = ["https://jimaku.cc", "https://jimaku.cc/dramas"];
+    let urls = ["https://jimaku.cc"];
 
     let entries = get_jimaku_entries(&urls)
         .await
@@ -26,9 +26,9 @@ async fn main() -> Result<()> {
     let browser =
         Browser::new(launch_options).map_err(|e| anyhow!("Failed to create browser: {:?}", e))?;
 
-    let mut i = 0;
+    let mut current = 80;
 
-    for entry in entries {
+    for entry in &entries[current..] {
         let anilist_id = match entry.anilist_id {
             None => continue,
             Some(anilist_id) => anilist_id,
@@ -42,14 +42,18 @@ async fn main() -> Result<()> {
             continue;
         }
 
-        let _anilist_data = get_anilist_entry(&browser, anilist_id)
-            .await
-            .context(format!("Failed to get anilist entry {}", anilist_id))?;
+        let _anilist_data = match get_anilist_entry(&browser, anilist_id).await {
+            Ok(anilist_data) => anilist_data,
+            Err(err) => {
+                eprintln!("Failed to get anilist entry {anilist_id}: {err}");
+                continue;
+            }
+        };
 
         // let _processed_entry = get_processed_entry(&entry, &files_data);
 
-        println!("{i}");
-        i += 1;
+        println!("{current}");
+        current += 1;
     }
 
     Ok(())
@@ -65,8 +69,6 @@ async fn get_anilist_entry(browser: &Browser, anilist_id: i32) -> Result<anilist
 
     let anilist_entry =
         parse_anilist_entry(&head).context(format!("Failed to parse request head: {}", head))?;
-
-    println!("{anilist_entry:?}");
 
     Ok(anilist_entry)
 }
