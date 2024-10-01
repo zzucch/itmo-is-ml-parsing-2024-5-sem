@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     let mut browser = get_new_browser()?;
 
-    let mut current = 640;
+    let mut current = 1400;
     let mut failed_in_a_row = 0;
 
     for entry in &entries[current..] {
@@ -93,7 +93,7 @@ async fn get_page_data_chrome_with_retry(
     browser: &mut Browser,
     url: &str,
 ) -> Result<(String, String)> {
-    for _ in 0..5 {
+    for _ in 0..10 {
         match get_page_data_chrome(&browser, url).await {
             Ok((head, body)) => return Ok((head, body)),
             Err(_) => {

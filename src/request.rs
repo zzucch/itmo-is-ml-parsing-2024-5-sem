@@ -17,11 +17,11 @@ pub async fn get_body(url: &str) -> Result<String> {
 }
 
 async fn get_response(url: &str) -> Result<reqwest::Response> {
-    for _i in 0..5 {
+    for attempt in 0..10 {
         let response = reqwest::get(url).await;
         match response {
             Ok(response) => return Ok(response),
-            Err(_) => sleep(Duration::from_secs(1)),
+            Err(_) => sleep(Duration::from_secs(1 * attempt)),
         };
     }
 
@@ -68,7 +68,7 @@ async fn wait_for_element(tab: &Tab, element: &str, duration: Duration) -> Resul
 }
 
 fn close_tab_with_retry(tab: Arc<Tab>) -> Result<()> {
-    for _i in 0..10 {
+    for _ in 0..10 {
         if let Ok(_) = tab.close(false) {
             return Ok(());
         }
