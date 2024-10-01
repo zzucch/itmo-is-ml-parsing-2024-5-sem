@@ -1,21 +1,28 @@
+use anyhow::{anyhow, bail, Context, Result};
 use headless_chrome::{Browser, LaunchOptionsBuilder};
 use ml_parser::{
-    //convert::entry::get_processed_entry,
-    parse::jimaku::{
-        entry::{parse_entries, Entry},
-        file::{parse_files_data, FileData},
+    parse::{
+        anilist::{self, entry::parse_anilist_entry},
+        jimaku::{
+            self,
+            entry::parse_entries,
+            file::{parse_files_data, FileData},
+        },
     },
-    request,
+    request::{get_body, get_head_chrome},
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     let urls = ["https://jimaku.cc", "https://jimaku.cc/dramas"];
 
-    let entries = get_entries(&urls).await;
+    let entries = get_entries(&urls).await.context("Failed to get entries")?;
 
-    let launch_options = LaunchOptionsBuilder::default().build().unwrap();
-    let browser = Browser::new(launch_options).unwrap();
+    let launch_options = LaunchOptionsBuilder::default()
+        .build()
+        .map_err(|e| anyhow!("Failed to build launch options: {:?}", e))?;
+    let browser =
+        Browser::new(launch_options).map_err(|e| anyhow!("Failed to create browser: {:?}", e))?;
 
     let mut i = 0;
 
@@ -24,78 +31,72 @@ async fn main() {
             continue;
         }
 
-        let files_data = get_entry_files_data(&entry).await;
+        let files_data = get_entry_files_data(&entry)
+            .await
+            .context("Failed to get entry files data")?;
 
         if files_data.is_empty() {
             continue;
         }
 
-        let _anilist_data = get_anilist_data(&browser, entry.anilist_id.unwrap()).await;
+        let _anilist_data = get_anilist_entry(&browser, entry.anilist_id.unwrap())
+            .await
+            .context("Failed to get Anilist entry")?;
 
         // let _processed_entry = get_processed_entry(&entry, &files_data);
 
         println!("{i}");
         i += 1;
     }
+
+    Ok(())
 }
 
-async fn get_anilist_data(browser: &Browser, anilist_id: i32) {
+async fn get_anilist_entry(browser: &Browser, anilist_id: i32) -> Result<anilist::entry::Entry> {
     const URL: &str = "https://anilist.co/anime/";
     let url = URL.to_owned() + &anilist_id.to_string();
 
-    let Ok(body) = request::get_body_chrome(browser, &url).await else {
-        eprintln!("failed to get the request body for {url}");
-        return;
-    };
+    let head = get_head_chrome(browser, &url)
+        .await
+        .map_err(|e| anyhow!("Failed to get request head: {:?}", e))?;
 
-    println!("{body}")
+    let anilist_entry = parse_anilist_entry(&head).context("Failed to parse request head")?;
 
-    //   let Ok(files_data) = parse_anilist_data(&body) else {
-    //       eprintln!("failed to parse request body for {url}:\n{body}");
-    //       return Vec::new();
-    //   };
-    //
-    //   files_data
+    println!("{anilist_entry:?}");
+
+    Ok(anilist_entry)
 }
 
-async fn get_entry_files_data(entry: &Entry) -> Vec<FileData> {
+async fn get_entry_files_data(entry: &jimaku::entry::Entry) -> Result<Vec<FileData>> {
     const URL: &str = "https://jimaku.cc/entry/";
     let url = URL.to_owned() + &entry.id.to_string();
 
-    let Ok(body) = request::get_body(&url).await else {
-        eprintln!("failed to get the request body for {url}");
-        return Vec::new();
-    };
+    let body = get_body(&url)
+        .await
+        .map_err(|e| anyhow!("Failed to get request body: {:?}", e))?;
 
-    let Ok(files_data) = parse_files_data(&body) else {
-        eprintln!("failed to parse request body for {url}:\n{body}");
-        return Vec::new();
-    };
+    let files_data = parse_files_data(&body).context("Failed to parse request body")?;
 
-    files_data
+    Ok(files_data)
 }
 
-async fn get_entries(urls: &[&str]) -> Vec<Entry> {
+async fn get_entries(urls: &[&str]) -> Result<Vec<jimaku::entry::Entry>> {
     let tasks: Vec<_> = urls
         .iter()
         .map(|&url| {
             let url = url.to_string();
 
             tokio::spawn(async move {
-                let Ok(body) = request::get_body(&url).await else {
-                    eprintln!("failed to get the request body for {url}");
-                    return Vec::new();
-                };
+                let body = get_body(&url)
+                    .await
+                    .map_err(|e| anyhow!("Failed to get request body: {:?}", e))?;
 
-                let Ok(entries) = parse_entries(&body) else {
-                    eprintln!("failed to parse request body for {url}:\n{body}");
-                    return Vec::new();
-                };
+                let entries = parse_entries(&body).context("Failed to parse request body")?;
 
                 let len = entries.len();
                 println!("{len}");
 
-                entries
+                Ok::<Vec<jimaku::entry::Entry>, anyhow::Error>(entries)
             })
         })
         .collect();
@@ -104,10 +105,10 @@ async fn get_entries(urls: &[&str]) -> Vec<Entry> {
 
     for task in tasks {
         match task.await {
-            Ok(entries) => all_entries.extend(entries),
-            Err(err) => eprintln!("task failed: {err:?}"),
+            Ok(entries) => all_entries.extend(entries?),
+            Err(err) => bail!("Task failed: {:?}", err),
         }
     }
 
-    all_entries
+    Ok(all_entries)
 }
