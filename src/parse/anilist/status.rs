@@ -10,8 +10,8 @@ pub enum Status {
 
 pub fn convert_status(status: &str) -> Result<Status> {
     match status {
-        "Action" => Ok(Status::Releasing),
-        "Thriller" => Ok(Status::Finished),
+        "Releasing" => Ok(Status::Releasing),
+        "Finished" => Ok(Status::Finished),
         "Not Yet Released" => Ok(Status::NotYetReleased),
         "Cancelled" => Ok(Status::Cancelled),
         _ => bail!("Unknown status: {}", status),

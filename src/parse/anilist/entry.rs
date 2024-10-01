@@ -1,17 +1,17 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use scraper::{Html, Selector};
 use serde_json::Value;
 
 use super::{
     format::{convert_format, Format},
     genre::{convert_genres, Genre},
-    source::Source,
+    source::{convert_source, Source},
     status::{convert_status, Status},
 };
 
 #[derive(Debug)]
 pub struct Entry {
-    format: Format,
+    format: Option<Format>,
     status: Option<Status>,
     source: Option<Source>,
     genres: Vec<Genre>,
@@ -32,12 +32,17 @@ pub fn parse_anilist_entry(head_data: &str, body_data: &str) -> Result<Entry> {
 
     entry.status = match entry.status {
         Some(status) => Some(status),
-        None => parse_body_status(&body_document).ok(),
+        None => Some(parse_body_status(&body_document)?),
+    };
+
+    entry.format = match entry.format {
+        Some(format) => Some(format),
+        None => Some(parse_body_format(&body_document)?),
     };
 
     entry.source = match entry.source {
         Some(source) => Some(source),
-        None => parse_body_source(&body_document).ok(),
+        None => Some(parse_body_source(&body_document)?),
     };
 
     let airing_episodes_amount = parse_body_airing_episodes_amount(&body_document).ok();
@@ -47,19 +52,143 @@ pub fn parse_anilist_entry(head_data: &str, body_data: &str) -> Result<Entry> {
         None => entry.episodes_amount,
     };
 
+    println!("{entry:?}");
+
     Ok(entry)
 }
 
-fn parse_body_source(body_document: &Html) -> Result<Source> {
-    todo!()
+fn parse_body_format(body_document: &Html) -> Result<Format> {
+    let data_set_selector = Selector::parse("div.data-set")
+        .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let type_selector =
+        Selector::parse("div.type").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let value_selector =
+        Selector::parse("div.value").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+
+    for data_set_element in body_document.select(&data_set_selector) {
+        if let Some(type_element) = data_set_element.select(&type_selector).next() {
+            if type_element
+                .text()
+                .collect::<Vec<_>>()
+                .join("")
+                .contains("Format")
+            {
+                if let Some(value_element) = data_set_element.select(&value_selector).next() {
+                    let format_text = value_element
+                        .text()
+                        .collect::<Vec<_>>()
+                        .join("")
+                        .trim()
+                        .to_string();
+                    return convert_format(&format_text);
+                }
+            }
+        }
+    }
+    Err(anyhow!("Format field not found"))
 }
 
-fn parse_body_status(body_document: &Html) -> Result<Status> {
-    todo!()
+fn parse_body_source(body_document: &Html) -> Result<Source> {
+    let data_set_selector = Selector::parse("div.data-set")
+        .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let type_selector =
+        Selector::parse("div.type").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let value_selector =
+        Selector::parse("div.value").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+
+    for data_set_element in body_document.select(&data_set_selector) {
+        if let Some(type_element) = data_set_element.select(&type_selector).next() {
+            if type_element
+                .text()
+                .collect::<Vec<_>>()
+                .join("")
+                .contains("Source")
+            {
+                if let Some(value_element) = data_set_element.select(&value_selector).next() {
+                    let source_text = value_element
+                        .text()
+                        .collect::<Vec<_>>()
+                        .join("")
+                        .trim()
+                        .to_string();
+                    return convert_source(&source_text);
+                }
+            }
+        }
+    }
+    Err(anyhow!("Source field not found"))
 }
 
 fn parse_body_airing_episodes_amount(body_document: &Html) -> Result<i32> {
-    todo!()
+    let data_set_selector = Selector::parse("div.data-set")
+        .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let type_selector =
+        Selector::parse("div.type").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let countdown_selector = Selector::parse("div.countdown")
+        .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+
+    for data_set_element in body_document.select(&data_set_selector) {
+        if let Some(type_element) = data_set_element.select(&type_selector).next() {
+            if type_element
+                .text()
+                .collect::<Vec<_>>()
+                .join("")
+                .contains("Airing")
+            {
+                if let Some(countdown_element) = data_set_element.select(&countdown_selector).next()
+                {
+                    let countdown_text = countdown_element
+                        .text()
+                        .collect::<Vec<_>>()
+                        .join("")
+                        .trim()
+                        .to_string();
+                    let episode_count_part = countdown_text
+                        .split_whitespace()
+                        .next()
+                        .ok_or_else(|| anyhow!("Failed to extract episode count"))?;
+                    let episode_count: i32 = episode_count_part
+                        .replace("Ep", "")
+                        .trim()
+                        .parse()
+                        .context("Failed to parse episode count to i32")?;
+                    return Ok(episode_count);
+                }
+            }
+        }
+    }
+    Err(anyhow!("Airing episodes amount field not found"))
+}
+
+fn parse_body_status(body_document: &Html) -> Result<Status> {
+    let data_set_selector = Selector::parse("div.data-set")
+        .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let type_selector =
+        Selector::parse("div.type").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let value_selector =
+        Selector::parse("div.value").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+
+    for data_set_element in body_document.select(&data_set_selector) {
+        if let Some(type_element) = data_set_element.select(&type_selector).next() {
+            if type_element
+                .text()
+                .collect::<Vec<_>>()
+                .join("")
+                .contains("Status")
+            {
+                if let Some(value_element) = data_set_element.select(&value_selector).next() {
+                    let status_text = value_element
+                        .text()
+                        .collect::<Vec<_>>()
+                        .join("")
+                        .trim()
+                        .to_string();
+                    return convert_status(&status_text);
+                }
+            }
+        }
+    }
+    Err(anyhow!("Status field not found"))
 }
 
 fn parse_head_data(head_data: &str) -> Result<Entry> {
@@ -76,11 +205,6 @@ fn parse_head_data(head_data: &str) -> Result<Entry> {
     let json_data: Value = serde_json::from_str(&script_content).context("Failed to parse JSON")?;
 
     let main_entity = &json_data["mainEntity"];
-
-    let format = main_entity["@type"]
-        .as_str()
-        .context(format!("Failed to get @type from {:?}", main_entity))?
-        .to_string();
 
     let episodes_amount = main_entity["numberOfEpisodes"]
         .as_i64()
@@ -157,11 +281,10 @@ fn parse_head_data(head_data: &str) -> Result<Entry> {
         .transpose()?
         .unwrap_or_default();
 
-    let format = convert_format(&format)?;
     let genres = convert_genres(&genres)?;
 
     let entry = Entry {
-        format,
+        format: None,
         status: None,
         source: None,
         genres,
@@ -185,6 +308,6 @@ fn extract_id_from_url(url: &str) -> Result<i32> {
             .parse::<i32>()
             .context(format!("Failed to parse id from URL {url}"))
     } else {
-        Err(anyhow!("Failed to find numeric id in URL {url}"))
+        bail!("Failed to find numeric id in URL {url}")
     }
 }

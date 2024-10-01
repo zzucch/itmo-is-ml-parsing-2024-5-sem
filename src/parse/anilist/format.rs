@@ -13,7 +13,7 @@ pub enum Format {
 
 pub fn convert_format(format: &str) -> Result<Format> {
     match format {
-        "TV Show" => Ok(Format::TvShort),
+        "TV" => Ok(Format::TvShort),
         "Movie" => Ok(Format::Movie),
         "TV Short" => Ok(Format::TvShort),
         "Special" => Ok(Format::Special),
