@@ -11,18 +11,36 @@ use super::{
 
 #[derive(Debug)]
 pub struct Entry {
+    format: Format,
+    status: Status,
+    source: Option<Source>,
+    genres: Vec<Genre>,
+    episodes_amount: i32,
+    time_required: Option<String>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    rating_value: i32,
+    rating_count: i32,
+    production_company: Option<i32>,
+    producer: Option<i32>,
+    creator: Option<i32>,
+}
+
+#[derive(Debug)]
+struct PendingEntry {
     format: Option<Format>,
     status: Option<Status>,
     source: Option<Source>,
     genres: Vec<Genre>,
     episodes_amount: Option<i32>,
-    time_required: Option<String>, // None on 138450
+    time_required: Option<String>,
     start_date: Option<String>,
     end_date: Option<String>,
     rating_value: i32,
     rating_count: i32,
     production_companies: Option<Vec<i32>>,
     producers: Option<Vec<i32>>,
+    creators: Option<Vec<i32>>,
 }
 
 pub fn parse_anilist_entry(head_data: &str, body_data: &str) -> Result<Entry> {
@@ -55,7 +73,41 @@ pub fn parse_anilist_entry(head_data: &str, body_data: &str) -> Result<Entry> {
         None => entry.episodes_amount,
     };
 
-    Ok(entry)
+    let result = Entry {
+        format: entry.format.unwrap(),
+        status: entry.status.unwrap(),
+        source: entry.source,
+        genres: entry.genres,
+        episodes_amount: entry.episodes_amount.unwrap(),
+        time_required: entry.time_required,
+        start_date: entry.start_date,
+        end_date: entry.end_date,
+        rating_value: entry.rating_value,
+        rating_count: entry.rating_count,
+        production_company: match entry.production_companies {
+            Some(production_companies) => match production_companies.get(0) {
+                Some(&production_company) => Some(production_company),
+                None => None,
+            },
+            None => None,
+        },
+        creator: match entry.creators {
+            Some(creators) => match creators.get(0) {
+                Some(&creator) => Some(creator),
+                None => None,
+            },
+            None => None,
+        },
+        producer: match entry.producers {
+            Some(producers) => match producers.get(0) {
+                Some(&producer) => Some(producer),
+                None => None,
+            },
+            None => None,
+        },
+    };
+
+    Ok(result)
 }
 
 fn parse_body_format(body_document: &Html) -> Result<Format> {
@@ -125,8 +177,8 @@ fn parse_body_airing_episodes_amount(body_document: &Html) -> Result<i32> {
         .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
     let type_selector =
         Selector::parse("div.type").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
-    let countdown_selector = Selector::parse("div.countdown")
-        .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
+    let value_selector =
+        Selector::parse("div.value").map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
 
     for data_set_element in body_document.select(&data_set_selector) {
         if let Some(type_element) = data_set_element.select(&type_selector).next() {
@@ -136,24 +188,29 @@ fn parse_body_airing_episodes_amount(body_document: &Html) -> Result<i32> {
                 .join("")
                 .contains("Airing")
             {
-                if let Some(countdown_element) = data_set_element.select(&countdown_selector).next()
-                {
-                    let countdown_text = countdown_element
+                if let Some(value_element) = data_set_element.select(&value_selector).next() {
+                    let value_text = value_element
                         .text()
                         .collect::<Vec<_>>()
                         .join("")
                         .trim()
                         .to_string();
-                    let episode_count_part = countdown_text
-                        .split_whitespace()
-                        .next()
-                        .ok_or_else(|| anyhow!("Failed to extract episode count"))?;
-                    let episode_count: i32 = episode_count_part
-                        .replace("Ep", "")
-                        .trim()
-                        .parse()
-                        .context("Failed to parse episode count to i32")?;
-                    return Ok(episode_count);
+
+                    if let Some(ep_pos) = value_text.find("Ep") {
+                        let ep_text = &value_text[ep_pos..];
+
+                        if let Some(colon_pos) = ep_text.find(":") {
+                            let episode_str = &ep_text[2..colon_pos].trim();
+
+                            let episode_count = episode_str
+                                .parse::<i32>()
+                                .context("Failed to parse episode count to i32")?;
+
+                            return Ok(episode_count);
+                        }
+                    }
+
+                    return Err(anyhow!("Failed to find 'Ep' pattern in Airing episodes"));
                 }
             }
         }
@@ -192,7 +249,7 @@ fn parse_body_status(body_document: &Html) -> Result<Status> {
     Err(anyhow!("Status field not found"))
 }
 
-fn parse_head_data(head_data: &str) -> Result<Entry> {
+fn parse_head_data(head_data: &str) -> Result<PendingEntry> {
     let document = Html::parse_document(head_data);
     let script_selector = Selector::parse("script[type=\"application/ld+json\"]")
         .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
@@ -264,6 +321,20 @@ fn parse_head_data(head_data: &str) -> Result<Entry> {
         })
         .transpose()?;
 
+    let creators = main_entity["creator"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|creator| {
+                    creator["@id"]
+                        .as_str()
+                        .context(format!("Failed to get @id for creator from {:?}", creator))
+                        .and_then(|id| extract_id_from_url(id))
+                })
+                .collect::<Result<Vec<_>>>()
+        })
+        .transpose()?;
+
     let genres = main_entity["genre"]
         .as_array()
         .map(|arr| {
@@ -281,7 +352,7 @@ fn parse_head_data(head_data: &str) -> Result<Entry> {
 
     let genres = convert_genres(&genres)?;
 
-    let entry = Entry {
+    let entry = PendingEntry {
         format: None,
         status: None,
         source: None,
@@ -294,6 +365,7 @@ fn parse_head_data(head_data: &str) -> Result<Entry> {
         rating_count,
         production_companies,
         producers,
+        creators,
     };
 
     Ok(entry)

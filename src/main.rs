@@ -28,7 +28,7 @@ async fn main() -> Result<()> {
     let browser =
         Browser::new(launch_options).map_err(|e| anyhow!("Failed to create browser: {:?}", e))?;
 
-    let mut current = 561;
+    let mut current = 640;
     let mut failed_in_a_row = 0;
 
     for entry in &entries[current..] {
@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
             continue;
         }
 
-        let _anilist_data = match get_anilist_entry(&browser, anilist_id).await {
+        let anilist_data = match get_anilist_entry(&browser, anilist_id).await {
             Ok(anilist_data) => anilist_data,
             Err(err) => {
                 eprintln!("Failed to get anilist entry {anilist_id}: {:#}", err);
