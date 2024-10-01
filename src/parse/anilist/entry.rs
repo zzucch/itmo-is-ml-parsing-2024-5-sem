@@ -9,7 +9,7 @@ pub struct Entry {
     format: String,
     episodes_amount: i32,
     time_required: String,
-    start_date: String,
+    start_date: Option<String>,
     end_date: Option<String>,
     rating_value: i32,
     rating_count: i32,
@@ -47,10 +47,8 @@ pub fn parse_anilist_entry(data: &str) -> Result<Entry> {
         .as_str()
         .context(format!("Failed to get timeRequired from {:?}", main_entity))?
         .to_string();
-    let start_date = main_entity["startDate"]
-        .as_str()
-        .context(format!("Failed to get startDate from {:?}", main_entity))?
-        .to_string();
+
+    let start_date = main_entity["startDate"].as_str().map(|s| s.to_string());
     let end_date = main_entity["endDate"].as_str().map(|s| s.to_string());
 
     let rating_value = i32::try_from(

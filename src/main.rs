@@ -16,7 +16,9 @@ use ml_parser::{
 async fn main() -> Result<()> {
     let urls = ["https://jimaku.cc", "https://jimaku.cc/dramas"];
 
-    let entries = get_entries(&urls).await.context("Failed to get entries")?;
+    let entries = get_jimaku_entries(&urls)
+        .await
+        .context("Failed to get jimaku entries")?;
 
     let launch_options = LaunchOptionsBuilder::default()
         .build()
@@ -27,21 +29,22 @@ async fn main() -> Result<()> {
     let mut i = 0;
 
     for entry in entries {
-        if entry.anilist_id.is_none() {
-            continue;
-        }
+        let anilist_id = match entry.anilist_id {
+            None => continue,
+            Some(anilist_id) => anilist_id,
+        };
 
-        let files_data = get_entry_files_data(&entry)
+        let files_data = get_jimaku_entry_files_data(&entry)
             .await
-            .context("Failed to get entry files data")?;
+            .context("Failed to get jimaku entry files data")?;
 
         if files_data.is_empty() {
             continue;
         }
 
-        let _anilist_data = get_anilist_entry(&browser, entry.anilist_id.unwrap())
+        let _anilist_data = get_anilist_entry(&browser, anilist_id)
             .await
-            .context("Failed to get Anilist entry")?;
+            .context(format!("Failed to get anilist entry {}", anilist_id))?;
 
         // let _processed_entry = get_processed_entry(&entry, &files_data);
 
@@ -60,14 +63,15 @@ async fn get_anilist_entry(browser: &Browser, anilist_id: i32) -> Result<anilist
         .await
         .map_err(|e| anyhow!("Failed to get request head: {:?}", e))?;
 
-    let anilist_entry = parse_anilist_entry(&head).context("Failed to parse request head")?;
+    let anilist_entry =
+        parse_anilist_entry(&head).context(format!("Failed to parse request head: {}", head))?;
 
     println!("{anilist_entry:?}");
 
     Ok(anilist_entry)
 }
 
-async fn get_entry_files_data(entry: &jimaku::entry::Entry) -> Result<Vec<FileData>> {
+async fn get_jimaku_entry_files_data(entry: &jimaku::entry::Entry) -> Result<Vec<FileData>> {
     const URL: &str = "https://jimaku.cc/entry/";
     let url = URL.to_owned() + &entry.id.to_string();
 
@@ -80,7 +84,7 @@ async fn get_entry_files_data(entry: &jimaku::entry::Entry) -> Result<Vec<FileDa
     Ok(files_data)
 }
 
-async fn get_entries(urls: &[&str]) -> Result<Vec<jimaku::entry::Entry>> {
+async fn get_jimaku_entries(urls: &[&str]) -> Result<Vec<jimaku::entry::Entry>> {
     let tasks: Vec<_> = urls
         .iter()
         .map(|&url| {
