@@ -9,7 +9,7 @@ use ml_parser::{
             file::{parse_files_data, FileData},
         },
     },
-    request::{get_body, get_head_chrome},
+    request::{get_body, get_page_data_chrome},
 };
 
 #[tokio::main]
@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
     let browser =
         Browser::new(launch_options).map_err(|e| anyhow!("Failed to create browser: {:?}", e))?;
 
-    let mut current = 80;
+    let mut current = 200;
 
     for entry in &entries[current..] {
         let anilist_id = match entry.anilist_id {
@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
         let _anilist_data = match get_anilist_entry(&browser, anilist_id).await {
             Ok(anilist_data) => anilist_data,
             Err(err) => {
-                eprintln!("Failed to get anilist entry {anilist_id}: {err}");
+                eprintln!("Failed to get anilist entry {anilist_id}: {:#}", err);
                 continue;
             }
         };
@@ -63,12 +63,12 @@ async fn get_anilist_entry(browser: &Browser, anilist_id: i32) -> Result<anilist
     const URL: &str = "https://anilist.co/anime/";
     let url = URL.to_owned() + &anilist_id.to_string();
 
-    let head = get_head_chrome(browser, &url)
+    let (head, body) = get_page_data_chrome(browser, &url)
         .await
         .map_err(|e| anyhow!("Failed to get request head: {:?}", e))?;
 
     let anilist_entry =
-        parse_anilist_entry(&head).context(format!("Failed to parse request head: {}", head))?;
+        parse_anilist_entry(&head, &body).context(format!("Failed to parse request head"))?;
 
     Ok(anilist_entry)
 }

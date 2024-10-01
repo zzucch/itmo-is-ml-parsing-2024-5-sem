@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 
 #[derive(Debug)]
 pub enum Genre {
@@ -22,7 +22,7 @@ pub enum Genre {
     Thriller,
 }
 
-pub fn convert_genres(genres: Vec<String>) -> Result<Vec<Genre>> {
+pub fn convert_genres(genres: &Vec<String>) -> Result<Vec<Genre>> {
     genres
         .into_iter()
         .map(|genre| match genre.as_str() {
@@ -44,7 +44,7 @@ pub fn convert_genres(genres: Vec<String>) -> Result<Vec<Genre>> {
             "Sports" => Ok(Genre::Sports),
             "Supernatural" => Ok(Genre::Supernatural),
             "Thriller" => Ok(Genre::Thriller),
-            _ => Err(anyhow!("Unknown genre: {}", genre)),
+            _ => bail!("Unknown genre: {}", genre),
         })
         .collect()
 }

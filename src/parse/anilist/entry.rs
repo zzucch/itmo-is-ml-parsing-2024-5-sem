@@ -2,12 +2,20 @@ use anyhow::{anyhow, Context, Result};
 use scraper::{Html, Selector};
 use serde_json::Value;
 
-use super::genre::{convert_genres, Genre};
+use super::{
+    format::{convert_format, Format},
+    genre::{convert_genres, Genre},
+    source::Source,
+    status::{convert_status, Status},
+};
 
 #[derive(Debug)]
 pub struct Entry {
-    format: String,
-    episodes_amount: i32,
+    format: Format,
+    status: Option<Status>,
+    source: Option<Source>,
+    genres: Vec<Genre>,
+    episodes_amount: Option<i32>,
     time_required: String,
     start_date: Option<String>,
     end_date: Option<String>,
@@ -15,11 +23,47 @@ pub struct Entry {
     rating_count: i32,
     production_companies: Option<Vec<i32>>,
     producers: Option<Vec<i32>>,
-    genres: Vec<Genre>,
 }
 
-pub fn parse_anilist_entry(data: &str) -> Result<Entry> {
-    let document = Html::parse_document(data);
+pub fn parse_anilist_entry(head_data: &str, body_data: &str) -> Result<Entry> {
+    let mut entry = parse_head_data(head_data)?;
+
+    let body_document = Html::parse_document(body_data);
+
+    entry.status = match entry.status {
+        Some(status) => Some(status),
+        None => parse_body_status(&body_document).ok(),
+    };
+
+    entry.source = match entry.source {
+        Some(source) => Some(source),
+        None => parse_body_source(&body_document).ok(),
+    };
+
+    let airing_episodes_amount = parse_body_airing_episodes_amount(&body_document).ok();
+
+    entry.episodes_amount = match airing_episodes_amount {
+        Some(airing_amount) => Some(airing_amount),
+        None => entry.episodes_amount,
+    };
+
+    Ok(entry)
+}
+
+fn parse_body_source(body_document: &Html) -> Result<Source> {
+    todo!()
+}
+
+fn parse_body_status(body_document: &Html) -> Result<Status> {
+    todo!()
+}
+
+fn parse_body_airing_episodes_amount(body_document: &Html) -> Result<i32> {
+    todo!()
+}
+
+fn parse_head_data(head_data: &str) -> Result<Entry> {
+    let document = Html::parse_document(head_data);
     let script_selector = Selector::parse("script[type=\"application/ld+json\"]")
         .map_err(|e| anyhow!("Failed to parse selector: {:?}", e))?;
 
@@ -38,10 +82,9 @@ pub fn parse_anilist_entry(data: &str) -> Result<Entry> {
         .context(format!("Failed to get @type from {:?}", main_entity))?
         .to_string();
 
-    let episodes_amount = i32::try_from(main_entity["numberOfEpisodes"].as_i64().context(
-        format!("Failed to get numberOfEpisodes from {:?}", main_entity),
-    )?)
-    .context("Failed to convert numberOfEpisodes to i32")?;
+    let episodes_amount = main_entity["numberOfEpisodes"]
+        .as_i64()
+        .and_then(|num| i32::try_from(num).ok());
 
     let time_required = main_entity["timeRequired"]
         .as_str()
@@ -114,10 +157,14 @@ pub fn parse_anilist_entry(data: &str) -> Result<Entry> {
         .transpose()?
         .unwrap_or_default();
 
-    let genres = convert_genres(genres)?;
+    let format = convert_format(&format)?;
+    let genres = convert_genres(&genres)?;
 
     let entry = Entry {
         format,
+        status: None,
+        source: None,
+        genres,
         episodes_amount,
         time_required,
         start_date,
@@ -126,7 +173,6 @@ pub fn parse_anilist_entry(data: &str) -> Result<Entry> {
         rating_count,
         production_companies,
         producers,
-        genres,
     };
 
     Ok(entry)
@@ -137,7 +183,7 @@ fn extract_id_from_url(url: &str) -> Result<i32> {
     if let Some(id_part) = parts.iter().find(|&&part| part.parse::<i32>().is_ok()) {
         id_part
             .parse::<i32>()
-            .context("Failed to parse id from URL")
+            .context(format!("Failed to parse id from URL {url}"))
     } else {
         Err(anyhow!("Failed to find numeric id in URL {url}"))
     }
