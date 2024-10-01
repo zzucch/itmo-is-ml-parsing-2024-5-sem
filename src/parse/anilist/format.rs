@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::{bail, Result};
 
 #[derive(Debug)]
@@ -11,23 +13,30 @@ pub enum Format {
     Music,
 }
 
-pub fn convert_format(format: &str) -> Result<Format> {
-    let format_lower = format.to_lowercase();
-    if format_lower.contains("movie") {
-        return Ok(Format::Movie); // 10259 is 'Movie (Chinese)'
-    }
-
-    if format_lower.contains("ona") {
-        return Ok(Format::Ona); // 103350 is 'ONA (Chinese)'
-    }
-
+pub fn to_format(format: &str) -> Result<Format> {
     match format {
-        "TV" => Ok(Format::TvShort),
+        "TV" => Ok(Format::TvShow),
         "Movie" => Ok(Format::Movie),
         "TV Short" => Ok(Format::TvShort),
         "Special" => Ok(Format::Special),
         "OVA" => Ok(Format::Ova),
+        "ONA" => Ok(Format::Ona),
         "Music" => Ok(Format::Music),
         _ => bail!("Unknown format: {}", format),
+    }
+}
+
+impl fmt::Display for Format {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Format::TvShow => "TV",
+            Format::Movie => "Movie",
+            Format::TvShort => "TV Short",
+            Format::Special => "Special",
+            Format::Ova => "OVA",
+            Format::Ona => "ONA",
+            Format::Music => "Music",
+        };
+        write!(f, "{}", s)
     }
 }

@@ -3,6 +3,7 @@ use std::process::exit;
 use anyhow::{anyhow, bail, Context, Result};
 use headless_chrome::{Browser, LaunchOptionsBuilder};
 use ml_parser::{
+    convert::entry::get_tsv_entry,
     parse::{
         anilist::{self, entry::parse_anilist_entry},
         jimaku::{
@@ -12,6 +13,7 @@ use ml_parser::{
         },
     },
     request::{get_body, get_page_data_chrome},
+    storage::save_to_tsv,
 };
 
 #[tokio::main]
@@ -28,8 +30,6 @@ async fn main() -> Result<()> {
     let mut failed_in_a_row = 0;
 
     for entry in &entries[current..] {
-        current += 1;
-
         let anilist_id = match entry.anilist_id {
             None => continue,
             Some(anilist_id) => anilist_id,
@@ -43,13 +43,13 @@ async fn main() -> Result<()> {
             continue;
         }
 
-        let _anilist_data = match get_anilist_entry(&mut browser, anilist_id).await {
+        let anilist_data = match get_anilist_entry(&mut browser, anilist_id).await {
             Ok(anilist_data) => anilist_data,
             Err(err) => {
                 eprintln!("Failed to get anilist entry {anilist_id}: {:#}", err);
                 failed_in_a_row += 1;
 
-                if failed_in_a_row == 3 {
+                if failed_in_a_row == 5 {
                     exit(1);
                 }
                 continue;
@@ -58,9 +58,14 @@ async fn main() -> Result<()> {
 
         failed_in_a_row = 0;
 
-        // let _processed_entry = get_processed_entry(&entry, &files_data);
+        let tsv_entry = get_tsv_entry(&entry, &files_data, &anilist_data)?;
 
-        println!("{current}");
+        save_to_tsv(&tsv_entry, "./data/data.tsv")?;
+
+        if current % 10 == 0 {
+            println!("{current}");
+        }
+        current += 1;
     }
 
     Ok(())

@@ -6,13 +6,13 @@ use serde::Deserialize;
 pub struct Entry {
     #[serde(skip_deserializing)]
     pub id: i32,
-    name: String,
+    pub name: String,
     pub flags: u32,
-    last_modified: i64,
+    pub last_modified: i64,
     pub anilist_id: Option<i32>,
-    tmdb_id: Option<String>,
-    english_name: Option<String>,
-    japanese_name: Option<String>,
+    _tmdb_id: Option<String>,
+    pub english_name: Option<String>,
+    pub japanese_name: Option<String>,
 }
 
 pub fn parse_entries(data: &str) -> Result<Vec<Entry>> {

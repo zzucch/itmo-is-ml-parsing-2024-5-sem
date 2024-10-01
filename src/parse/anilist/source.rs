@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::{bail, Result};
 
 #[derive(Debug)]
@@ -18,7 +20,7 @@ pub enum Source {
     Other,
 }
 
-pub fn convert_source(source: &str) -> Result<Source> {
+pub fn to_source(source: &str) -> Result<Source> {
     match source {
         "Original" => Ok(Source::Original),
         "Manga" => Ok(Source::Manga),
@@ -35,5 +37,27 @@ pub fn convert_source(source: &str) -> Result<Source> {
         "Multimedia Project" => Ok(Source::MultimediaProject),
         "Other" => Ok(Source::Other),
         _ => bail!("Unknown source: {}", source),
+    }
+}
+
+impl fmt::Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Source::Original => "Original",
+            Source::Manga => "Manga",
+            Source::LightNovel => "Light Novel",
+            Source::WebNovel => "Web Novel",
+            Source::Novel => "Novel",
+            Source::Anime => "Anime",
+            Source::VisualNovel => "Visual Novel",
+            Source::VideoGame => "Video Game",
+            Source::Doujinshi => "Doujinshi",
+            Source::Comic => "Comic",
+            Source::LiveAction => "Live Action",
+            Source::Game => "Game",
+            Source::MultimediaProject => "Multimedia Project",
+            Source::Other => "Other",
+        };
+        write!(f, "{}", s)
     }
 }

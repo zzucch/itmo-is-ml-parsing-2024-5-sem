@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Genre {
     Action,
     Adventure,
@@ -22,7 +22,7 @@ pub enum Genre {
     Thriller,
 }
 
-pub fn convert_genres(genres: &Vec<String>) -> Result<Vec<Genre>> {
+pub fn to_genres(genres: &Vec<String>) -> Result<Vec<Genre>> {
     genres
         .into_iter()
         .map(|genre| match genre.as_str() {

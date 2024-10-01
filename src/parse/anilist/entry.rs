@@ -3,27 +3,27 @@ use scraper::{Html, Selector};
 use serde_json::Value;
 
 use super::{
-    format::{convert_format, Format},
-    genre::{convert_genres, Genre},
-    source::{convert_source, Source},
-    status::{convert_status, Status},
+    format::{to_format, Format},
+    genre::{to_genres, Genre},
+    source::{to_source, Source},
+    status::{to_status, Status},
 };
 
 #[derive(Debug)]
 pub struct Entry {
-    format: Format,
-    status: Status,
-    source: Option<Source>,
-    genres: Vec<Genre>,
-    episodes_amount: i32,
-    time_required: Option<String>,
-    start_date: Option<String>,
-    end_date: Option<String>,
-    rating_value: i32,
-    rating_count: i32,
-    production_company: Option<i32>,
-    producer: Option<i32>,
-    creator: Option<i32>,
+    pub format: Format,
+    pub status: Status,
+    pub source: Option<Source>,
+    pub genres: Vec<Genre>,
+    pub episodes_amount: i32,
+    pub time_required: Option<String>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub rating_value: i32,
+    pub rating_count: i32,
+    pub production_company: Option<i32>,
+    pub producer: Option<i32>,
+    pub creator: Option<i32>,
 }
 
 #[derive(Debug)]
@@ -133,7 +133,7 @@ fn parse_body_format(body_document: &Html) -> Result<Format> {
                         .join("")
                         .trim()
                         .to_string();
-                    return convert_format(&format_text);
+                    return to_format(&format_text);
                 }
             }
         }
@@ -164,7 +164,7 @@ fn parse_body_source(body_document: &Html) -> Result<Source> {
                         .join("")
                         .trim()
                         .to_string();
-                    return convert_source(&source_text);
+                    return to_source(&source_text);
                 }
             }
         }
@@ -241,7 +241,7 @@ fn parse_body_status(body_document: &Html) -> Result<Status> {
                         .join("")
                         .trim()
                         .to_string();
-                    return convert_status(&status_text);
+                    return to_status(&status_text);
                 }
             }
         }
@@ -350,7 +350,7 @@ fn parse_head_data(head_data: &str) -> Result<PendingEntry> {
         .transpose()?
         .unwrap_or_default();
 
-    let genres = convert_genres(&genres)?;
+    let genres = to_genres(&genres)?;
 
     let entry = PendingEntry {
         format: None,
