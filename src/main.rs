@@ -26,10 +26,10 @@ async fn main() -> Result<()> {
 
     let mut browser = get_new_browser()?;
 
-    let mut current = 1400;
+    let mut current = 0;
     let mut failed_in_a_row = 0;
 
-    for entry in &entries[current..] {
+    for entry in &entries {
         let anilist_id = match entry.anilist_id {
             None => continue,
             Some(anilist_id) => anilist_id,
