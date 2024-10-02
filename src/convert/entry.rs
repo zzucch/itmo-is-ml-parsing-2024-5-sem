@@ -86,7 +86,10 @@ pub fn get_tsv_entry(
             Some(source) => source.to_string(),
             None => "?".to_string(),
         },
-        episodes_amount: anilist_entry.episodes_amount,
+        episodes_amount: match anilist_entry.episodes_amount {
+            Some(episodes_amount) => episodes_amount,
+            None => 0,
+        },
         time_required: match &anilist_entry.time_required {
             Some(time) => parse_time(time)?,
             None => 0,
