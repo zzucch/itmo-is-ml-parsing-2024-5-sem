@@ -18,7 +18,7 @@ use ml_parser::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let urls = ["https://jimaku.cc"];
+    let urls = ["https://jimaku.cc", "https://jimaku.cc/dramas"];
 
     let entries = get_jimaku_entries(&urls)
         .await
