@@ -3,6 +3,10 @@ name = "ml_parser"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "tsv_to_arff"
+path = "src/bin/tsv_to_arff.rs"
+
 [lints.rust]
 unsafe_code = "forbid"
 
