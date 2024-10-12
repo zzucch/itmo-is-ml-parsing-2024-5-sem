@@ -1,3 +1,8 @@
+// This code snippet is taken from the jimaku project:
+// Licensed under the AGPL v3.
+// Original author: Rapptz
+// Original project: https://github.com/Rapptz/jimaku
+
 pub struct EntryFlags(u32);
 
 impl EntryFlags {
