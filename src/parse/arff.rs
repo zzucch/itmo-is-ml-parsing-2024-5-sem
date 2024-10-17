@@ -146,12 +146,18 @@ impl ARFFData {
             .iter()
             .filter_map(|attr| match &attr.attr_type {
                 AttributeType::String => None,
-                AttributeType::Nominal(values) => Some(
-                    values
-                        .iter()
-                        .map(|v| format!("{}_{}", attr.name, v))
-                        .collect::<Vec<_>>(),
-                ),
+                AttributeType::Nominal(values) => {
+                    if attr.name == "source" {
+                        Some(vec![attr.name.clone()]) // Only one "source" header
+                    } else {
+                        Some(
+                            values
+                                .iter()
+                                .map(|v| format!("{}_{}", attr.name, v))
+                                .collect::<Vec<_>>(),
+                        )
+                    }
+                }
                 AttributeType::BooleanNominal => Some(vec![attr.name.clone()]),
                 _ => Some(vec![attr.name.clone()]),
             })
@@ -256,14 +262,19 @@ impl ARFFData {
                         normalized_record.push(format!("{:.5}", normalized_value));
                     }
                     AttributeType::Nominal(nominal_values) => {
-                        let mode = modes.get(&index).unwrap();
-                        let actual_value = if value == "?" { mode } else { value };
+                        if attribute.name == "source" {
+                            // Directly push the 'source' value without normalization
+                            normalized_record.push(value.clone());
+                        } else {
+                            let mode = modes.get(&index).unwrap();
+                            let actual_value = if value == "?" { mode } else { value };
 
-                        for nominal_value in nominal_values {
-                            if nominal_value == actual_value {
-                                normalized_record.push("1".to_string());
-                            } else {
-                                normalized_record.push("0".to_string());
+                            for nominal_value in nominal_values {
+                                if nominal_value == actual_value {
+                                    normalized_record.push("1".to_string());
+                                } else {
+                                    normalized_record.push("0".to_string());
+                                }
                             }
                         }
                     }
