@@ -148,7 +148,7 @@ impl ARFFData {
                 AttributeType::String => None,
                 AttributeType::Nominal(values) => {
                     if attr.name == "source" {
-                        Some(vec![attr.name.clone()]) // Only one "source" header
+                        Some(vec![attr.name.clone()])
                     } else {
                         Some(
                             values
@@ -259,11 +259,10 @@ impl ARFFData {
                             0.0
                         };
 
-                        normalized_record.push(format!("{:.5}", normalized_value));
+                        normalized_record.push(normalized_value.to_string());
                     }
                     AttributeType::Nominal(nominal_values) => {
                         if attribute.name == "source" {
-                            // Directly push the 'source' value without normalization
                             normalized_record.push(value.clone());
                         } else {
                             let mode = modes.get(&index).unwrap();
