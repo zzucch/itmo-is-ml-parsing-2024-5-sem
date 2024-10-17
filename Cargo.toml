@@ -7,6 +7,10 @@ edition = "2021"
 name = "tsv_to_arff"
 path = "src/bin/tsv_to_arff.rs"
 
+[[bin]]
+name = "arff_to_csv"
+path = "src/bin/arff_to_csv.rs"
+
 [lints.rust]
 unsafe_code = "forbid"
 

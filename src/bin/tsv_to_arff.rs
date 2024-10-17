@@ -25,6 +25,10 @@ fn main() -> Result<()> {
             nominal_values = vec![HashSet::new(); headers.len()];
         } else {
             for (i, value) in values.iter().enumerate() {
+                // because by chance all the shows are not adult and it is useless
+                if headers[i] == "is_adult" {
+                    continue;
+                }
                 if headers[i].starts_with("is_")
                     || headers[i] == "format"
                     || headers[i] == "status"
@@ -52,6 +56,11 @@ fn main() -> Result<()> {
     writeln!(output_file, "@relation data\n")?;
 
     for (index, header) in headers.iter().enumerate() {
+        // see 28:20
+        if header == "is_adult" {
+            continue;
+        }
+
         let attr_type = if header.starts_with("is_")
             || header == "format"
             || header == "status"
@@ -92,7 +101,18 @@ fn main() -> Result<()> {
         let line = line?;
 
         let values: Vec<&str> = line.trim().split('\t').collect();
-        let quoted_values: Vec<String> = values.iter().map(|&v| quote_if_needed(v)).collect();
+        let quoted_values: Vec<String> = values
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &v)| {
+                // see 28:20
+                if headers[i] == "is_adult" {
+                    None
+                } else {
+                    Some(quote_if_needed(v))
+                }
+            })
+            .collect();
 
         writeln!(output_file, "{}", quoted_values.join(", "))?;
     }
@@ -101,8 +121,8 @@ fn main() -> Result<()> {
 }
 
 fn quote_if_needed(value: &str) -> String {
-    if value.contains(' ') || value.contains(',') || value.contains('\'') {
-        format!("'{}'", value.replace('\'', "''"))
+    if value.contains(' ') || value.contains(',') || value.contains('\'') || value.contains('%') {
+        format!("'{}'", value.replace('\'', "\\\'"))
     } else {
         value.to_string()
     }
