@@ -246,12 +246,14 @@ impl ARFFData {
 
                         let mean = *means.get(&index).unwrap();
                         let std_dev = *standard_deviations.get(&index).unwrap();
+
                         let normalized_value = if std_dev > 0.0 {
                             (value - mean) / std_dev
                         } else {
                             0.0
                         };
-                        normalized_record.push(normalized_value.to_string());
+
+                        normalized_record.push(format!("{:.5}", normalized_value));
                     }
                     AttributeType::Nominal(nominal_values) => {
                         let mode = modes.get(&index).unwrap();
